@@ -2,6 +2,17 @@
 
 LogBook Editor is a lightweight, Notepad++-style text editor built with plain HTML, CSS, and JavaScript, and packaged as a desktop application with Electron. It is designed to feel familiar for users who want a simple editor with multi-tab support, file handling, find/replace tools, session persistence, a status bar, and theme switching.
 
+## 🎬 Demo Preview
+
+![LogBook Editor Demo](assets/preview.png)
+
+### Features Demonstrated:
+- **Tabbed Interface & Multi-Document Editing**: Open multiple files or scratch tabs side by side.
+- **Find & Replace Toolbar**: Search forward/backward, auto-wrap around document, and instant replace.
+- **Session Auto-Restore**: Closing the app retains all unsaved tabs and text edits for your next launch.
+
+---
+
 ## Overview
 LogBook Editor provides a clean, minimal interface for creating and editing text files. It supports working with multiple documents at once through tabs, preserving content in each tab until the user saves it, and includes session caching so your unsaved tabs and edits are never lost when closing the application.
 
