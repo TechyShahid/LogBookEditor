@@ -7,7 +7,8 @@
   "scripts": {
     "start": "electron .",
     "serve": "python3 -m http.server 8000",
-    "package:mac": "electron-packager . LogBookEditor --platform=darwin --arch=x64 --overwrite"
+    "package:mac": "electron-packager . LogBookEditor --platform=darwin --arch=arm64,x64 --overwrite",
+    "build:dmg": "rm -f LogBookEditor.dmg && appdmg appdmg.json LogBookEditor.dmg"
   },
   "devDependencies": {
     "appdmg": "^0.6.6",
