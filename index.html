@@ -38,7 +38,10 @@
 
       <main class="editor-area">
         <div class="line-numbers" id="lineNumbers"></div>
-        <textarea id="editor" spellcheck="false"></textarea>
+        <div class="editor-surface">
+          <pre class="highlight-layer" id="highlightLayer" aria-hidden="true"></pre>
+          <textarea id="editor" spellcheck="false"></textarea>
+        </div>
       </main>
 
       <footer class="status-bar">

@@ -1,4 +1,5 @@
 const editor = document.getElementById('editor');
+const highlightLayer = document.getElementById('highlightLayer');
 const lineNumbers = document.getElementById('lineNumbers');
 const tabStrip = document.getElementById('tabStrip');
 const searchPanel = document.getElementById('searchPanel');
@@ -15,12 +16,13 @@ const state = {
   theme: localStorage.getItem('editor-theme') || 'dark',
 };
 
-function createDoc(title = 'untitled.txt', content = '', path = null) {
+function createDoc(title = 'untitled.txt', content = '', path = null, language = null) {
   return {
     id: crypto.randomUUID(),
     title,
     content,
     path,
+    language: language || getLanguageFromName(title),
     changed: false,
   };
 }
@@ -36,6 +38,70 @@ function applyTheme() {
   localStorage.setItem('editor-theme', state.theme);
 }
 
+function getLanguageFromName(name = '') {
+  const lowerName = name.toLowerCase();
+  if (lowerName.endsWith('.html') || lowerName.endsWith('.htm')) return 'html';
+  if (lowerName.endsWith('.css')) return 'css';
+  if (lowerName.endsWith('.js') || lowerName.endsWith('.ts')) return 'js';
+  if (lowerName.endsWith('.json')) return 'json';
+  if (lowerName.endsWith('.md') || lowerName.endsWith('.markdown')) return 'md';
+  return 'text';
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function highlightCode(value, language) {
+  const escaped = escapeHtml(value);
+
+  if (language === 'html') {
+    return escaped
+      .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="token comment">$1</span>')
+      .replace(/(&lt;\/?)([A-Za-z][\w:-]*)(?=[^&]*&gt;)/g, '$1<span class="token tag">$2</span>')
+      .replace(/("[^"\\]*(\\.[^"\\]*)*"|'[^'\\]*(\\.[^'\\]*)*')/g, '<span class="token string">$1</span>');
+  }
+
+  if (language === 'css') {
+    return escaped
+      .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="token comment">$1</span>')
+      .replace(/([A-Za-z-]+)(?=\s*:)/g, '<span class="token attr-name">$1</span>')
+      .replace(/("[^"\\]*(\\.[^"\\]*)*"|'[^'\\]*(\\.[^'\\]*)*')/g, '<span class="token string">$1</span>')
+      .replace(/\b(\d+)(px|rem|em|vh|vw|%)?\b/g, '<span class="token number">$1$2</span>');
+  }
+
+  if (language === 'js') {
+    return escaped
+      .replace(/(\/\*[\s\S]*?\*\/|\/\/.*)/g, '<span class="token comment">$1</span>')
+      .replace(/\b(function|const|let|var|return|if|else|for|while|new|class|extends|import|export|from|async|await|try|catch|finally|switch|case|break|default|typeof|instanceof|true|false|null|undefined|super|this)\b/g, '<span class="token keyword">$1</span>')
+      .replace(/("[^"\\]*(\\.[^"\\]*)*"|'[^'\\]*(\\.[^'\\]*)*'|`[^`\\]*(\\.[^`\\]*)*`)/g, '<span class="token string">$1</span>')
+      .replace(/\b(\d+)\b/g, '<span class="token number">$1</span>');
+  }
+
+  if (language === 'json') {
+    return escaped
+      .replace(/("(?:\\.|[^"\\])*"\s*:)/g, '<span class="token attr-name">$1</span>')
+      .replace(/("(?:\\.|[^"\\])*"|\btrue\b|\bfalse\b|\bnull\b)/g, '<span class="token string">$1</span>')
+      .replace(/\b(\d+)\b/g, '<span class="token number">$1</span>');
+  }
+
+  if (language === 'md') {
+    return escaped.replace(/^(#{1,6}\s+.+)$/gm, '<span class="token heading">$1</span>');
+  }
+
+  return escaped;
+}
+
+function updateHighlight() {
+  const doc = getCurrentDoc();
+  if (!doc) return;
+  const language = doc.language || getLanguageFromName(doc.title);
+  highlightLayer.innerHTML = highlightCode(editor.value, language);
+}
+
 function getCurrentDoc() {
   return state.docs.find((doc) => doc.id === state.currentId) || null;
 }
@@ -43,8 +109,10 @@ function getCurrentDoc() {
 function setCurrentDoc(doc) {
   state.currentId = doc.id;
   editor.value = doc.content;
+  doc.language = doc.language || getLanguageFromName(doc.title);
   updateLineNumbers();
   updateStatus();
+  updateHighlight();
   renderTabs();
 }
 
@@ -153,9 +221,11 @@ function updateStatus() {
 function saveDoc(doc, asNew = false) {
   if (!doc) return;
   doc.content = editor.value;
+  doc.language = getLanguageFromName(doc.title);
   const suggestedName = doc.path ? doc.path.split(/[\\/]/).pop() : doc.title;
   const filename = asNew ? prompt('Save as', suggestedName || 'untitled.txt') : suggestedName;
   if (!filename) return;
+  doc.language = getLanguageFromName(filename);
   const blob = new Blob([doc.content], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -187,7 +257,7 @@ function saveAllDocs() {
 function openFile(file) {
   const reader = new FileReader();
   reader.onload = () => {
-    const doc = createDoc(file.name, reader.result, file.name);
+    const doc = createDoc(file.name, reader.result, file.name, getLanguageFromName(file.name));
     addDoc(doc);
     statusText.textContent = `Opened ${file.name}`;
   };
@@ -278,12 +348,15 @@ function attachEvents() {
       doc.changed = true;
       updateLineNumbers();
       updateStatus();
+      updateHighlight();
       renderTabs();
     }
   });
 
   editor.addEventListener('scroll', () => {
     lineNumbers.scrollTop = editor.scrollTop;
+    highlightLayer.scrollTop = editor.scrollTop;
+    highlightLayer.scrollLeft = editor.scrollLeft;
   });
 
   editor.addEventListener('keyup', updateStatus);
@@ -328,10 +401,11 @@ function attachEvents() {
 
 function init() {
   applyTheme();
-  addDoc(createDoc('welcome.txt', 'Welcome to LogBook Editor\n\nFeatures:\n- Tabbed editing\n- Open/Save files\n- Find and replace\n- Line numbers\n- Dark/light themes\n'));
+  addDoc(createDoc('welcome.txt', 'Welcome to LogBook Editor\n\nFeatures:\n- Tabbed editing\n- Open/Save files\n- Find and replace\n- Line numbers\n- Dark/light themes\n', null, 'text'));
   attachEvents();
   updateLineNumbers();
   updateStatus();
+  updateHighlight();
 }
 
 init();
