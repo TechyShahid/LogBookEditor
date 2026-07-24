@@ -1,0 +1,17 @@
+{
+  "name": "logbook-editor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A Notepad++-style text editor starter with tabs, open/save, find/replace, and line numbers.",
+  "main": "desktop-app.js",
+  "scripts": {
+    "start": "electron .",
+    "serve": "python3 -m http.server 8000",
+    "package:mac": "electron-packager . LogBookEditor --platform=darwin --arch=x64 --overwrite"
+  },
+  "devDependencies": {
+    "appdmg": "^0.6.6",
+    "electron": "^35.0.0",
+    "electron-packager": "^17.0.0"
+  }
+}

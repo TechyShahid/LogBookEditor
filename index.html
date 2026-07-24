@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LogBook Editor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="toolbar">
+        <div class="toolbar-group">
+          <button id="newBtn">New</button>
+          <button id="openBtn">Open</button>
+          <button id="openNewTabBtn">Open in New Tab</button>
+          <button id="saveBtn">Save</button>
+          <button id="saveAsBtn">Save As</button>
+          <button id="saveAllBtn">Save All</button>
+        </div>
+        <div class="toolbar-group">
+          <button id="findBtn">Find</button>
+          <button id="themeBtn">Theme</button>
+        </div>
+      </header>
+
+      <input id="fileInput" type="file" accept=".txt,.md,.json,.js,.css,.html,.csv" hidden />
+
+      <section class="tab-strip" id="tabStrip"></section>
+
+      <section class="search-panel" id="searchPanel" hidden>
+        <input id="findInput" type="text" placeholder="Find" />
+        <input id="replaceInput" type="text" placeholder="Replace" />
+        <button id="findNextBtn">Find Next</button>
+        <button id="replaceBtn">Replace</button>
+        <button id="replaceAllBtn">Replace All</button>
+        <button id="closeSearchBtn">Close</button>
+      </section>
+
+      <main class="editor-area">
+        <div class="line-numbers" id="lineNumbers"></div>
+        <textarea id="editor" spellcheck="false"></textarea>
+      </main>
+
+      <footer class="status-bar">
+        <span id="statusText">Ready</span>
+        <span id="positionText">Ln 1, Col 1</span>
+        <span id="wordCountText">Words: 0</span>
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
