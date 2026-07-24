@@ -102,6 +102,51 @@ function updateHighlight() {
   highlightLayer.innerHTML = highlightCode(editor.value, language);
 }
 
+const SESSION_KEY = 'logbook-editor-session-v1';
+
+function saveSession() {
+  try {
+    const currentDoc = getCurrentDoc();
+    if (currentDoc) {
+      currentDoc.content = editor.value;
+    }
+    const sessionData = {
+      docs: state.docs.map((doc) => ({
+        id: doc.id,
+        title: doc.title,
+        content: doc.content,
+        path: doc.path,
+        language: doc.language,
+        changed: doc.changed,
+      })),
+      currentId: state.currentId,
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+  } catch (err) {
+    console.error('Failed to save session:', err);
+  }
+}
+
+function loadSession() {
+  try {
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (!saved) return false;
+    const sessionData = JSON.parse(saved);
+    if (Array.isArray(sessionData.docs) && sessionData.docs.length > 0) {
+      state.docs = sessionData.docs;
+      state.currentId = sessionData.currentId || sessionData.docs[0].id;
+      const validDoc = getCurrentDoc() || state.docs[0];
+      state.currentId = validDoc.id;
+      renderTabs();
+      setCurrentDoc(validDoc);
+      return true;
+    }
+  } catch (err) {
+    console.error('Failed to load session:', err);
+  }
+  return false;
+}
+
 function getCurrentDoc() {
   return state.docs.find((doc) => doc.id === state.currentId) || null;
 }
@@ -114,6 +159,7 @@ function setCurrentDoc(doc) {
   updateStatus();
   updateHighlight();
   renderTabs();
+  saveSession();
 }
 
 function addDoc(doc) {
@@ -140,7 +186,6 @@ function renderTabs() {
         const current = getCurrentDoc();
         if (current) {
           current.content = editor.value;
-          current.changed = true;
         }
         setCurrentDoc(doc);
         return;
@@ -148,7 +193,6 @@ function renderTabs() {
       const current = getCurrentDoc();
       if (current) {
         current.content = editor.value;
-        current.changed = true;
       }
       setCurrentDoc(doc);
     });
@@ -161,6 +205,7 @@ function renderTabs() {
       if (newName && newName.trim()) {
         doc.title = newName.trim();
         renderTabs();
+        saveSession();
       }
     });
 
@@ -197,6 +242,7 @@ function closeDoc(id) {
     state.currentId = state.docs[Math.max(0, index - 1)].id;
   }
   setCurrentDoc(getCurrentDoc());
+  saveSession();
 }
 
 function updateLineNumbers() {
@@ -238,6 +284,7 @@ function saveDoc(doc, asNew = false) {
   doc.changed = false;
   renderTabs();
   updateStatus();
+  saveSession();
 }
 
 function saveCurrentDoc(asNew = false) {
@@ -447,8 +494,11 @@ function attachEvents() {
       updateStatus();
       updateHighlight();
       renderTabs();
+      saveSession();
     }
   });
+
+  window.addEventListener('beforeunload', saveSession);
 
   editor.addEventListener('scroll', () => {
     lineNumbers.scrollTop = editor.scrollTop;
@@ -498,7 +548,10 @@ function attachEvents() {
 
 function init() {
   applyTheme();
-  addDoc(createDoc('welcome.txt', 'Welcome to LogBook Editor\n\nFeatures:\n- Tabbed editing\n- Open/Save files\n- Find and replace\n- Line numbers\n- Dark/light themes\n', null, 'text'));
+  const restored = loadSession();
+  if (!restored) {
+    addDoc(createDoc('welcome.txt', 'Welcome to LogBook Editor\n\nFeatures:\n- Tabbed editing\n- Open/Save files\n- Find and replace\n- Automatic session restore (unsaved tabs saved across restarts)\n- Line numbers\n- Dark/light themes\n', null, 'text'));
+  }
   attachEvents();
   updateLineNumbers();
   updateStatus();

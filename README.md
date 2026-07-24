@@ -1,39 +1,42 @@
 # LogBook Editor
 
-LogBook Editor is a lightweight, Notepad++-style text editor built with plain HTML, CSS, and JavaScript, and packaged as a desktop application with Electron. It is designed to feel familiar for users who want a simple editor with multi-tab support, file handling, find/replace tools, a status bar, and theme switching.
+LogBook Editor is a lightweight, Notepad++-style text editor built with plain HTML, CSS, and JavaScript, and packaged as a desktop application with Electron. It is designed to feel familiar for users who want a simple editor with multi-tab support, file handling, find/replace tools, session persistence, a status bar, and theme switching.
 
 ## Overview
-LogBook Editor provides a clean, minimal interface for creating and editing text files. It supports working with multiple documents at once through tabs, preserving content in each tab until the user saves it, and includes common editing features expected in a modern text editor.
+LogBook Editor provides a clean, minimal interface for creating and editing text files. It supports working with multiple documents at once through tabs, preserving content in each tab until the user saves it, and includes session caching so your unsaved tabs and edits are never lost when closing the application.
 
 ## Main Features
-- Multiple tabbed documents
-- New document creation with a dedicated new-tab button
-- Open files from disk
-- Save the current document
-- Save as a new file
-- Save all modified tabs
-- Find and replace text
-- Line numbers and live cursor position information
-- Word count in the status bar
-- Dark and light theme toggle
-- Keyboard shortcuts for common actions
-- Desktop packaging for macOS
+- **Multiple Tabbed Editing**: Create, rename, switch, and close multiple tabs effortlessly.
+- **Automatic Session Restore & Cache**: Unsaved tabs, draft text, and tab states are saved automatically and restored seamlessly when reopening the app.
+- **Enhanced Find and Replace**:
+  - **Find Next** and **Find Prev** for forward/reverse searching.
+  - Automatic document wrap-around when searching.
+  - Case-insensitive search with auto-scrolling to highlighted matches.
+  - **Replace** and **Replace All** with automatic syntax update.
+- **Syntax Highlighting**: Built-in syntax highlighting for HTML, CSS, JavaScript, JSON, and Markdown.
+- **File Operations**: Open existing files from disk, save, save as, and save all open tabs.
+- **Editor Info**: Real-time line numbers, cursor position (`Ln X, Col Y`), and word count in the status bar.
+- **Theme Support**: Dark mode and light mode toggling.
+- **Desktop Packaging**: macOS Electron desktop application with DMG installer support.
 
 ## Keyboard Shortcuts
-- Ctrl/Cmd + N: create a new tab
-- Ctrl/Cmd + O: open a file
-- Shift + Ctrl/Cmd + O: open a file in a new tab
-- Ctrl/Cmd + S: save the current document
-- Shift + Ctrl/Cmd + S: save all modified documents
-- Ctrl/Cmd + F: open the find/replace panel
+- `Ctrl/Cmd + N`: Create a new tab
+- `Ctrl/Cmd + O`: Open a file
+- `Shift + Ctrl/Cmd + O`: Open a file in a new tab
+- `Ctrl/Cmd + S`: Save the current document
+- `Shift + Ctrl/Cmd + S`: Save all modified documents
+- `Ctrl/Cmd + F`: Open/close the find/replace panel
+- `Enter` *(inside Find input)*: Find Next
+- `Shift + Enter` *(inside Find input)*: Find Prev
+- `Escape` *(inside Find input)*: Close search panel
 
 ## Project Structure
-- index.html: main application layout
-- styles.css: visual styling and responsive layout
-- app.js: editor logic, tabs, file handling, search, and status updates
-- desktop-app.js: Electron entry point for desktop application packaging
-- package.json: scripts and dependencies
-- appdmg.json: configuration for creating a macOS DMG installer
+- [index.html](file:///Users/shahidkhan/LogBook/index.html): Main application layout and search panel markup.
+- [styles.css](file:///Users/shahidkhan/LogBook/styles.css): Visual styling, dark/light themes, and editor layer layout.
+- [app.js](file:///Users/shahidkhan/LogBook/app.js): Core editor logic, tab management, find/replace engine, syntax highlighting, and session storage cache.
+- [desktop-app.js](file:///Users/shahidkhan/LogBook/desktop-app.js): Electron entry point for desktop application.
+- [package.json](file:///Users/shahidkhan/LogBook/package.json): Build scripts and dependencies.
+- [appdmg.json](file:///Users/shahidkhan/LogBook/appdmg.json): Configuration for creating the macOS DMG installer.
 
 ## Run Locally
 Install dependencies and launch the app:
@@ -52,45 +55,29 @@ If you want to preview the editor in a browser instead of the desktop app, run:
 python3 -m http.server 8000
 ```
 
-Then open http://127.0.0.1:8000 in your browser.
+Then open `http://127.0.0.1:8000` in your browser.
 
 ## Build a macOS Desktop App
-To build a macOS app bundle for Intel:
+To build macOS app bundles (for both Apple Silicon `arm64` and Intel `x64`):
 
 ```bash
-npx electron-packager . LogBookEditor --platform=darwin --arch=x64 --overwrite
-```
-
-To build a macOS app bundle for Apple Silicon:
-
-```bash
-npx electron-packager . LogBookEditor --platform=darwin --arch=arm64 --overwrite
+npm run package:mac
 ```
 
 ## Create a macOS DMG Installer
-To create a disk image installer:
+To create a disk image installer (`LogBookEditor.dmg`):
 
 ```bash
-npx appdmg appdmg.json LogBookEditor.dmg
+npm run build:dmg
 ```
 
 ## Installation on macOS
-1. Open the generated .dmg file
-2. Drag the app into the Applications folder
-3. Open it from Applications
+1. Open the generated `LogBookEditor.dmg` file.
+2. Drag `LogBookEditor` into the `Applications` folder shortcut.
+3. Launch `LogBookEditor` from your Applications folder.
 
-If macOS shows a security warning, right-click the app and choose Open, then confirm.
+If macOS shows a security warning, right-click the app and choose **Open**, then confirm.
 
 ## Notes
-- The application is currently focused on a lightweight editor experience rather than full IDE features.
-- Saving files downloads them as text files through the browser-style save flow used by the app.
-- The app is suitable for personal notes, quick code edits, and lightweight text editing tasks.
-
-## Future Improvements
-Possible enhancements include:
-- Syntax highlighting for programming languages
-- Word wrap and line ending options
-- Find-in-files and replace-in-files
-- File explorer sidebar
-- Auto-save support
-- Drag-and-drop tab management
+- Session cache uses persistent local storage to guarantee unsaved text is preserved across app restarts.
+- The application is focused on a lightweight, fast editor experience.
