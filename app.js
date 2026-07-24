@@ -267,14 +267,49 @@ function openFile(file) {
 function findText(direction = 1) {
   const query = findInput.value;
   if (!query) return;
+
   const text = editor.value;
-  const start = editor.selectionStart;
-  const fromIndex = direction > 0 ? start + query.length : start - 1;
-  const matchIndex = direction > 0 ? text.indexOf(query, fromIndex) : text.lastIndexOf(query, fromIndex);
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+
+  const selStart = editor.selectionStart;
+  const selEnd = editor.selectionEnd;
+  const isSelectedQuery = text.slice(selStart, selEnd).toLowerCase() === lowerQuery;
+
+  let matchIndex = -1;
+
+  if (direction > 0) {
+    const fromIndex = isSelectedQuery ? selEnd : selStart;
+    matchIndex = lowerText.indexOf(lowerQuery, fromIndex);
+    if (matchIndex === -1 && fromIndex > 0) {
+      matchIndex = lowerText.indexOf(lowerQuery, 0);
+    }
+  } else {
+    const fromIndex = isSelectedQuery ? selStart - 1 : selStart - 1;
+    if (fromIndex >= 0) {
+      matchIndex = lowerText.lastIndexOf(lowerQuery, fromIndex);
+    }
+    if (matchIndex === -1) {
+      matchIndex = lowerText.lastIndexOf(lowerQuery);
+    }
+  }
+
   if (matchIndex >= 0) {
     editor.focus();
     editor.setSelectionRange(matchIndex, matchIndex + query.length);
+
+    const lineIndex = text.slice(0, matchIndex).split('\n').length - 1;
+    const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 21.37;
+    const targetScrollTop = lineIndex * lineHeight;
+    const containerHeight = editor.clientHeight;
+
+    if (targetScrollTop < editor.scrollTop || targetScrollTop > editor.scrollTop + containerHeight - lineHeight * 2) {
+      editor.scrollTop = Math.max(0, targetScrollTop - containerHeight / 3);
+    }
+
     updateStatus();
+  } else {
+    statusText.textContent = `No matches found for "${query}"`;
   }
 }
 
@@ -282,20 +317,31 @@ function replaceText() {
   const query = findInput.value;
   const replacement = replaceInput.value;
   if (!query) return;
-  const selection = editor.value.slice(editor.selectionStart, editor.selectionEnd);
-  if (selection === query) {
-    const before = editor.value.slice(0, editor.selectionStart);
-    const after = editor.value.slice(editor.selectionEnd);
+
+  const selStart = editor.selectionStart;
+  const selEnd = editor.selectionEnd;
+  const selection = editor.value.slice(selStart, selEnd);
+
+  if (selection.toLowerCase() === query.toLowerCase()) {
+    const before = editor.value.slice(0, selStart);
+    const after = editor.value.slice(selEnd);
     editor.value = `${before}${replacement}${after}`;
-    editor.setSelectionRange(editor.selectionStart, editor.selectionStart + replacement.length);
+
     const doc = getCurrentDoc();
     if (doc) {
       doc.content = editor.value;
       doc.changed = true;
       updateLineNumbers();
       updateStatus();
+      updateHighlight();
       renderTabs();
     }
+
+    editor.focus();
+    editor.setSelectionRange(selStart, selStart + replacement.length);
+    findText(1);
+  } else {
+    findText(1);
   }
 }
 
@@ -305,18 +351,42 @@ function replaceAllText() {
   if (!query) return;
   const doc = getCurrentDoc();
   if (!doc) return;
-  doc.content = doc.content.split(query).join(replacement);
+
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(escaped, 'gi');
+  const matches = doc.content.match(regex);
+  const count = matches ? matches.length : 0;
+
+  if (count === 0) {
+    statusText.textContent = `No matches found for "${query}"`;
+    return;
+  }
+
+  doc.content = doc.content.replace(regex, replacement);
   editor.value = doc.content;
   doc.changed = true;
   updateLineNumbers();
   updateStatus();
+  updateHighlight();
   renderTabs();
+  statusText.textContent = `Replaced ${count} occurrence(s) of "${query}"`;
 }
 
 function toggleSearch() {
-  searchPanel.hidden = !searchPanel.hidden;
+  const isHidden = searchPanel.hidden;
+  searchPanel.hidden = !isHidden;
   if (!searchPanel.hidden) {
+    const selectedText = editor.value.slice(editor.selectionStart, editor.selectionEnd);
+    if (selectedText && !selectedText.includes('\n')) {
+      findInput.value = selectedText;
+    }
     findInput.focus();
+    findInput.select();
+    if (findInput.value) {
+      findText(1);
+    }
+  } else {
+    editor.focus();
   }
 }
 
@@ -335,10 +405,37 @@ function attachEvents() {
     applyTheme();
   });
   document.getElementById('findNextBtn').addEventListener('click', () => findText(1));
+  const findPrevBtn = document.getElementById('findPrevBtn');
+  if (findPrevBtn) {
+    findPrevBtn.addEventListener('click', () => findText(-1));
+  }
   document.getElementById('replaceBtn').addEventListener('click', replaceText);
   document.getElementById('replaceAllBtn').addEventListener('click', replaceAllText);
   document.getElementById('closeSearchBtn').addEventListener('click', () => {
     searchPanel.hidden = true;
+    editor.focus();
+  });
+
+  findInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      findText(event.shiftKey ? -1 : 1);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      searchPanel.hidden = true;
+      editor.focus();
+    }
+  });
+
+  replaceInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      replaceText();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      searchPanel.hidden = true;
+      editor.focus();
+    }
   });
 
   editor.addEventListener('input', () => {
